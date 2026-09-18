@@ -23,7 +23,7 @@
     "nodemailer": "^10.0.9",
     "passport": "^0.7.0",
     "passport-google-oauth20": "^2.0.0",
-    "razorpay": "^2.9.8"
+    "stripe": "^22.6.2"
   },
   "devDependencies": {
     "nodemon": "^3.1.14"

@@ -102,17 +102,16 @@ const orderSchema = new mongoose.Schema(
       default: "paid",
     },
 
-    razorpayOrderId: {
-      type: String,
-      required: true,
-      unique: true,
-    },
+   stripeSessionId: {
+  type: String,
+  required: true,
+  unique: true,
+},
 
-    razorpayPaymentId: {
-      type: String,
-      required: true,
-      unique: true,
-    },
+stripePaymentIntentId: {
+  type: String,
+  default: null,
+},
 
     paidAt: {
       type: Date,

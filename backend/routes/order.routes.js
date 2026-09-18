@@ -1,8 +1,8 @@
 import express from "express";
 
 import {
-  createRazorpayOrder,
-  verifyRazorpayPayment,
+  createStripeSession,
+  verifyStripePayment,
   getMyOrders,
   getOrderById,
   getOrderStatus,
@@ -20,7 +20,7 @@ const router = express.Router();
 router.post(
   "/create-payment",
   protectCustomer,
-  createRazorpayOrder
+  createStripeSession
 );
 
 
@@ -28,7 +28,7 @@ router.post(
 router.post(
   "/verify-payment",
   protectCustomer,
-  verifyRazorpayPayment
+  verifyStripePayment
 );
 
 
