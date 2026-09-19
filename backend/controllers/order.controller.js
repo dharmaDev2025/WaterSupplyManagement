@@ -1,5 +1,4 @@
 import mongoose from "mongoose";
-
 import Order from "../models/order.model.js";
 import Product from "../models/product.model.js";
 import stripe from "../config/stripe.js";
@@ -16,7 +15,6 @@ const calculateOrder = async (items) => {
   }
 
   const orderItems = [];
-
   let totalAmount = 0;
   let emptyJarsExpected = 0;
 
@@ -158,16 +156,11 @@ const calculateOrder = async (items) => {
     orderItems.push({
       product:
         product._id,
-
       name:
         product.name,
-
       purchaseType,
-
       quantity,
-
       price,
-
       subtotal,
     });
   }
@@ -251,10 +244,8 @@ const validateDeliveryDetails = (
     deliveryAddress: {
       houseNo:
         deliveryAddress.houseNo.trim(),
-
       street:
         deliveryAddress.street.trim(),
-
       city:
         deliveryAddress.city.trim(),
     },
@@ -640,17 +631,20 @@ export const verifyStripePayment =
           emptyJarsReceived:
             0,
         });
-    for (const item of orderItems) {
-  await Product.findByIdAndUpdate(
-    item.product,
-    {
-      $inc: {
-        stock: -item.quantity,
-      },
-    }
-  );
-}
 
+      for (
+        const item of orderItems
+      ) {
+        await Product.findByIdAndUpdate(
+          item.product,
+          {
+            $inc: {
+              stock:
+                -item.quantity,
+            },
+          }
+        );
+      }
 
       return res
         .status(201)
@@ -748,10 +742,15 @@ export const getOrderById =
 
           customer:
             req.customer._id,
-        }).populate(
-          "items.product",
-          "name productType size unit"
-        );
+        })
+          .populate(
+            "items.product",
+            "name productType size unit"
+          )
+          .populate(
+            "deliveryBoy",
+            "name phone"
+          );
 
       if (!order) {
         return res
@@ -813,9 +812,14 @@ export const getOrderStatus =
 
           customer:
             req.customer._id,
-        }).select(
-          "orderNumber status paymentStatus createdAt deliveredAt"
-        );
+        })
+          .select(
+            "orderNumber status paymentStatus createdAt deliveredAt deliveryBoy"
+          )
+          .populate(
+            "deliveryBoy",
+            "name phone"
+          );
 
       if (!order) {
         return res
@@ -848,6 +852,21 @@ export const getOrderStatus =
 
             deliveredAt:
               order.deliveredAt,
+
+            deliveryBoy:
+              order.deliveryBoy
+                ? {
+                    name:
+                      order
+                        .deliveryBoy
+                        .name,
+
+                    phone:
+                      order
+                        .deliveryBoy
+                        .phone,
+                  }
+                : null,
           },
         });
     } catch (error) {
@@ -867,109 +886,167 @@ export const getOrderStatus =
     }
   };
 
-export const reorder = async (req, res) => {
-  try {
-    
-    const { id } = req.params;
-
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid order ID",
-      });
-    }
-
-    const oldOrder = await Order.findOne({
-      _id: id,
-      customer: req.customer._id,
-    }).populate(
-      "items.product",
-      "name productType size unit stock newJarPrice refillPrice bottlePrice isActive"
-    );
-
-    if (!oldOrder) {
-      return res.status(404).json({
-        success: false,
-        message: "Order not found",
-      });
-    }
-
-    const items = [];
-
-    for (const item of oldOrder.items) {
-      const product = item.product;
-
-      if (!product) {
-        return res.status(404).json({
-          success: false,
-          message: `${item.name} is no longer available`,
-        });
-      }
-
-      if (product.isActive === false) {
-        return res.status(400).json({
-          success: false,
-          message: `${product.name} is currently unavailable`,
-        });
-      }
-
-      if (product.stock < item.quantity) {
-        return res.status(400).json({
-          success: false,
-          message: `Only ${product.stock} unit(s) of ${product.name} are available`,
-        });
-      }
-
-      let price;
+export const reorder =
+  async (req, res) => {
+    try {
+      const { id } =
+        req.params;
 
       if (
-        product.productType === "jar" &&
-        item.purchaseType === "new-jar"
+        !mongoose.Types.ObjectId.isValid(
+          id
+        )
       ) {
-        price = product.newJarPrice;
-      } else if (
-        product.productType === "jar" &&
-        item.purchaseType === "refill"
-      ) {
-        price = product.refillPrice;
-      } else {
-        price = product.bottlePrice;
+        return res
+          .status(400)
+          .json({
+            success: false,
+            message:
+              "Invalid order ID",
+          });
       }
 
-      if (
-        price === undefined ||
-        price === null
+      const oldOrder =
+        await Order.findOne({
+          _id: id,
+          customer:
+            req.customer._id,
+        }).populate(
+          "items.product",
+          "name productType size unit stock newJarPrice refillPrice bottlePrice isActive"
+        );
+
+      if (!oldOrder) {
+        return res
+          .status(404)
+          .json({
+            success: false,
+            message:
+              "Order not found",
+          });
+      }
+
+      const items = [];
+
+      for (
+        const item of oldOrder.items
       ) {
-        return res.status(400).json({
-          success: false,
-          message: `Price is not available for ${product.name}`,
+        const product =
+          item.product;
+
+        if (!product) {
+          return res
+            .status(404)
+            .json({
+              success: false,
+              message:
+                `${item.name} is no longer available`,
+            });
+        }
+
+        if (
+          product.isActive ===
+          false
+        ) {
+          return res
+            .status(400)
+            .json({
+              success: false,
+              message:
+                `${product.name} is currently unavailable`,
+            });
+        }
+
+        if (
+          product.stock <
+          item.quantity
+        ) {
+          return res
+            .status(400)
+            .json({
+              success: false,
+              message:
+                `Only ${product.stock} unit(s) of ${product.name} are available`,
+            });
+        }
+
+        let price;
+
+        if (
+          product.productType ===
+            "jar" &&
+          item.purchaseType ===
+            "new-jar"
+        ) {
+          price =
+            product.newJarPrice;
+        } else if (
+          product.productType ===
+            "jar" &&
+          item.purchaseType ===
+            "refill"
+        ) {
+          price =
+            product.refillPrice;
+        } else {
+          price =
+            product.bottlePrice;
+        }
+
+        if (
+          price === undefined ||
+          price === null
+        ) {
+          return res
+            .status(400)
+            .json({
+              success: false,
+              message:
+                `Price is not available for ${product.name}`,
+            });
+        }
+
+        items.push({
+          productId:
+            product._id.toString(),
+          name:
+            product.name,
+          productType:
+            product.productType,
+          purchaseType:
+            item.purchaseType,
+          quantity:
+            item.quantity,
+          price,
+          size:
+            product.size,
+          unit:
+            product.unit,
+          stock:
+            product.stock,
         });
       }
 
-      items.push({
-        productId: product._id.toString(),
-        name: product.name,
-        productType: product.productType,
-        purchaseType: item.purchaseType,
-        quantity: item.quantity,
-        price,
-        size: product.size,
-        unit: product.unit,
-        stock: product.stock,
-      });
+      return res
+        .status(200)
+        .json({
+          success: true,
+          message:
+            "Reorder items prepared successfully",
+          items,
+        });
+    } catch (error) {
+      console.log(
+        "Reorder error:",
+        error
+      );
+
+      return res
+        .status(500)
+        .json({
+          success: false,
+          message:
+            "Unable to prepare reorder",
+        });
     }
-
-    return res.status(200).json({
-      success: true,
-      message: "Reorder items prepared successfully",
-      items,
-    });
-  } catch (error) {
-    console.log("Reorder error:", error);
-
-    return res.status(500).json({
-      success: false,
-      message: "Unable to prepare reorder",
-    });
-  }
-};
+  };

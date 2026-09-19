@@ -85,6 +85,17 @@ const orderSchema = new mongoose.Schema(
       },
     },
 
+    deliveryBoy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "DeliveryBoy",
+      default: null,
+    },
+
+    deliveryBoyAssignedAt: {
+      type: Date,
+      default: null,
+    },
+
     status: {
       type: String,
       enum: [
@@ -102,16 +113,16 @@ const orderSchema = new mongoose.Schema(
       default: "paid",
     },
 
-   stripeSessionId: {
-  type: String,
-  required: true,
-  unique: true,
-},
+    stripeSessionId: {
+      type: String,
+      required: true,
+      unique: true,
+    },
 
-stripePaymentIntentId: {
-  type: String,
-  default: null,
-},
+    stripePaymentIntentId: {
+      type: String,
+      default: null,
+    },
 
     paidAt: {
       type: Date,
@@ -126,6 +137,16 @@ stripePaymentIntentId: {
     emptyJarsReceived: {
       type: Number,
       default: 0,
+    },
+
+    deliveryOtpHash: {
+      type: String,
+      default: null,
+    },
+
+    deliveryOtpExpire: {
+      type: Date,
+      default: null,
     },
 
     deliveredAt: {
