@@ -81,7 +81,9 @@ function App() {
            <Route
             path="/delivery/orders"
             element={
-              <DeliveryActiveOrders />
+              <DeliveryActiveOrders title="Active Orders">
+                {null}
+              </DeliveryActiveOrders>
             }
           /> 
 
