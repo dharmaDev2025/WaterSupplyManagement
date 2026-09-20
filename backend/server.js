@@ -31,59 +31,22 @@ const app = express();
 const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:5174",
-
-  // Customer frontend
-  "https://customer-swart.vercel.app",
-
-  // Admin frontend
-  "https://admin-772ybh5am-dharmendras-projects-f6a9b66f.vercel.app",
-
-  // Environment variables
   process.env.CLIENT_URL,
   process.env.ADMIN_URL,
 ].filter(Boolean);
 
-console.log("Allowed Origins:", allowedOrigins);
-
-const corsOptions = {
-  origin: function (origin, callback) {
-    console.log("Incoming Origin:", origin);
-
-    // Allow Postman/server-to-server requests
-    if (!origin) {
-      return callback(null, true);
-    }
-
-    // Allow listed frontend URLs
-    if (allowedOrigins.includes(origin)) {
-      return callback(null, true);
-    }
-
-    console.log("CORS BLOCKED:", origin);
-
-    return callback(
-      new Error(`CORS blocked origin: ${origin}`)
-    );
-  },
-
-  credentials: true,
-
-  methods: [
-    "GET",
-    "POST",
-    "PUT",
-    "PATCH",
-    "DELETE",
-    "OPTIONS",
-  ],
-
-  allowedHeaders: [
-    "Content-Type",
-    "Authorization",
-  ],
-};
-
-app.use(cors(corsOptions));
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error(`CORS blocked origin: ${origin}`));
+      }
+    },
+    credentials: true,
+  })
+);
 
 /* =====================================================
    MIDDLEWARE
