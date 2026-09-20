@@ -30,16 +30,20 @@ const allowedOrigins = [
   process.env.ADMIN_URL,
 ].filter(Boolean);
 
+console.log("Allowed origins:", allowedOrigins);
+
 app.use(
   cors({
     origin: (origin, callback) => {
+      console.log("Request origin:", origin);
+
       if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(
-          new Error(`CORS blocked origin: ${origin}`)
-        );
+        return callback(null, true);
       }
+
+      console.log("CORS BLOCKED:", origin);
+
+      return callback(new Error(`CORS blocked origin: ${origin}`));
     },
     credentials: true,
   })
