@@ -175,9 +175,9 @@ export const googleAuthSuccess = async (
     const token = generateToken(customer._id);
 
     // Later this will redirect to your React frontend
-    res.redirect(
-      `http://localhost:5173/auth-success?token=${token}`
-    );
+ res.redirect(
+  `${process.env.CLIENT_URL}/auth-success?token=${token}`
+);
 
   } catch (error) {
 
