@@ -1,16 +1,12 @@
-import {
-  useEffect,
-  useState,
-} from "react";
-import {
-  useNavigate,
-  useParams,
-} from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
 import {
+  AlertCircle,
   ArrowLeft,
   CheckCircle2,
   ChevronRight,
+  CreditCard,
   ExternalLink,
   Mail,
   MapPin,
@@ -21,115 +17,35 @@ import {
   Truck,
   User,
 } from "lucide-react";
-import DeliveryDashboardLayout from "../components/DeliveryDashboardLayout";
+import type { DeliveryOrderDetailsData, OrderItem } from "../types/delivery";
 
-interface Customer {
-  name?: string;
-  phone?: string;
-  email?: string;
-}
-
-interface DeliveryAddress {
-  houseNo?: string;
-  street?: string;
-  area?: string;
-  city?: string;
-  pincode?: string;
-}
-
-interface DeliveryLocation {
-  latitude?: number;
-  longitude?: number;
-}
-
-interface Product {
-  _id?: string;
-  name?: string;
-  productType?: string;
-  size?: number;
-  unit?: string;
-}
-
-interface OrderItem {
-  _id?: string;
-  product?: Product;
-  name?: string;
-  purchaseType?: string;
-  quantity: number;
-  price: number;
-  subtotal?: number;
-}
-
-interface OrderDetails {
-  id: string;
-  orderNumber: string;
-  customer: Customer;
-  deliveryAddress: DeliveryAddress;
-  deliveryLocation: DeliveryLocation;
-  mapUrl?: string;
-  items: OrderItem[];
-  totalAmount: number;
-  paymentStatus: string;
-  status: string;
-  assignedAt?: string;
-  createdAt?: string;
-  deliveredAt?: string;
-}
-
-function DeliveryOrderDetails() {
+export default function DeliveryOrderDetails() {
   const { id } = useParams();
-
   const navigate = useNavigate();
+  const API_URL = import.meta.env.VITE_API_URL;
 
-  const API_URL =
-    import.meta.env.VITE_API_URL;
+  const [order, setOrder] = useState<DeliveryOrderDetailsData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
-  const [order, setOrder] =
-    useState<OrderDetails | null>(null);
-
-  const [loading, setLoading] =
-    useState(true);
-
-  const [error, setError] =
-    useState("");
-
-  const [success, setSuccess] =
-    useState("");
-
-  const [otpSent, setOtpSent] =
-    useState(false);
-
-  const [otp, setOtp] =
-    useState("");
-
-  const [sendingOtp, setSendingOtp] =
-    useState(false);
-
-  const [verifyingOtp, setVerifyingOtp] =
-    useState(false);
+  // Delivery OTP state
+  const [otpSent, setOtpSent] = useState(false);
+  const [otp, setOtp] = useState("");
+  const [sendingOtp, setSendingOtp] = useState(false);
+  const [verifyingOtp, setVerifyingOtp] = useState(false);
 
   const logout = () => {
-    localStorage.removeItem(
-      "deliveryToken"
-    );
-
-    localStorage.removeItem(
-      "deliveryBoy"
-    );
-
+    localStorage.removeItem("deliveryToken");
+    localStorage.removeItem("deliveryBoy");
     navigate("/");
   };
 
   const getConfig = () => {
-    const token =
-      localStorage.getItem(
-        "deliveryToken"
-      );
-
+    const token = localStorage.getItem("deliveryToken");
     return {
       headers: {
-        Authorization:
-          `Bearer ${token}`,
+        Authorization: `Bearer ${token}`,
       },
     };
   };
@@ -139,58 +55,33 @@ function DeliveryOrderDetails() {
       setLoading(true);
       setError("");
 
-      const token =
-        localStorage.getItem(
-          "deliveryToken"
-        );
-
+      const token = localStorage.getItem("deliveryToken");
       if (!token) {
         logout();
         return;
       }
 
       if (!id) {
-        setError(
-          "Order ID is missing"
-        );
+        setError("Order ID is missing.");
         return;
       }
 
-      const response =
-        await axios.get(
-          `${API_URL}/delivery/orders/${id}`,
-          getConfig()
-        );
-
-      setOrder(
-        response.data.order
+      const response = await axios.get(
+        `${API_URL}/delivery/orders/${id}`,
+        getConfig()
       );
-    } catch (error: unknown) {
-      if (
-        axios.isAxiosError(error)
-      ) {
-        if (
-          error.response?.status ===
-            401 ||
-          error.response?.status ===
-            403
-        ) {
+
+      setOrder(response.data?.order || null);
+    } catch (err: unknown) {
+      if (axios.isAxiosError(err)) {
+        if (err.response?.status === 401 || err.response?.status === 403) {
           logout();
           return;
         }
-
-        setError(
-          error.response?.data
-            ?.message ||
-            "Unable to fetch order details"
-        );
-
+        setError(err.response?.data?.message || "Failed to load order details.");
         return;
       }
-
-      setError(
-        "Unable to fetch order details"
-      );
+      setError("An unexpected error occurred while fetching the order.");
     } finally {
       setLoading(false);
     }
@@ -200,957 +91,766 @@ function DeliveryOrderDetails() {
     fetchOrder();
   }, [id]);
 
-  const handleSendOtp =
-    async () => {
-      try {
-        setSendingOtp(true);
-        setError("");
-        setSuccess("");
+  const handleSendOtp = async () => {
+    try {
+      setSendingOtp(true);
+      setError("");
+      setSuccess("");
 
-        const response =
-          await axios.post(
-            `${API_URL}/delivery/orders/${id}/send-delivery-otp`,
-            {},
-            getConfig()
-          );
+      const response = await axios.post(
+        `${API_URL}/delivery/orders/${id}/send-delivery-otp`,
+        {},
+        getConfig()
+      );
 
-        setOtpSent(true);
-
-        setSuccess(
-          response.data.message ||
-            "OTP sent to customer email"
-        );
-      } catch (error: unknown) {
-        if (
-          axios.isAxiosError(error)
-        ) {
-          if (
-            error.response?.status ===
-              401 ||
-            error.response?.status ===
-              403
-          ) {
-            logout();
-            return;
-          }
-
-          setError(
-            error.response?.data
-              ?.message ||
-              "Unable to send OTP"
-          );
-
+      setOtpSent(true);
+      setSuccess(
+        response.data?.message || "Delivery OTP sent to customer email."
+      );
+    } catch (err: unknown) {
+      if (axios.isAxiosError(err)) {
+        if (err.response?.status === 401 || err.response?.status === 403) {
+          logout();
           return;
         }
-
-        setError(
-          "Unable to send OTP"
-        );
-      } finally {
-        setSendingOtp(false);
+        setError(err.response?.data?.message || "Failed to send delivery OTP.");
+        return;
       }
-    };
+      setError("Unable to send OTP. Please try again.");
+    } finally {
+      setSendingOtp(false);
+    }
+  };
 
-  const handleVerifyOtp =
-    async () => {
-      try {
-        if (
-          otp.trim().length !== 6
-        ) {
-          setError(
-            "Please enter the 6-digit OTP"
-          );
-          return;
-        }
-
-        setVerifyingOtp(true);
-        setError("");
-        setSuccess("");
-
-        const response =
-          await axios.post(
-            `${API_URL}/delivery/orders/${id}/verify-delivery-otp`,
-            {
-              otp: otp.trim(),
-            },
-            getConfig()
-          );
-
-        setSuccess(
-          response.data.message ||
-            "Delivery completed successfully"
-        );
-
-        setOtp("");
-        setOtpSent(false);
-
-        await fetchOrder();
-      } catch (error: unknown) {
-        if (
-          axios.isAxiosError(error)
-        ) {
-          if (
-            error.response?.status ===
-              401 ||
-            error.response?.status ===
-              403
-          ) {
-            logout();
-            return;
-          }
-
-          setError(
-            error.response?.data
-              ?.message ||
-              "Invalid OTP"
-          );
-
-          return;
-        }
-
-        setError(
-          "Unable to verify OTP"
-        );
-      } finally {
-        setVerifyingOtp(false);
+  const handleVerifyOtp = async () => {
+    try {
+      if (otp.trim().length !== 6) {
+        setError("Please enter the complete 6-digit OTP.");
+        return;
       }
-    };
 
-  const formatStatus = (
-    status: string
-  ) => {
+      setVerifyingOtp(true);
+      setError("");
+      setSuccess("");
+
+      const response = await axios.post(
+        `${API_URL}/delivery/orders/${id}/verify-delivery-otp`,
+        {
+          otp: otp.trim(),
+        },
+        getConfig()
+      );
+
+      setSuccess(
+        response.data?.message || "Delivery confirmed successfully!"
+      );
+      setOtp("");
+      setOtpSent(false);
+
+      // Re-fetch order to update status to "delivered"
+      await fetchOrder();
+    } catch (err: unknown) {
+      if (axios.isAxiosError(err)) {
+        if (err.response?.status === 401 || err.response?.status === 403) {
+          logout();
+          return;
+        }
+        setError(err.response?.data?.message || "Invalid or expired OTP.");
+        return;
+      }
+      setError("Unable to verify OTP. Please try again.");
+    } finally {
+      setVerifyingOtp(false);
+    }
+  };
+
+  const formatStatus = (status: string) => {
     return status
       .split("-")
-      .map(
-        (word) =>
-          word
-            .charAt(0)
-            .toUpperCase() +
-          word.slice(1)
-      )
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
       .join(" ");
   };
 
-  const statusStyle = (
-    status: string
-  ) => {
-    if (status === "confirmed") {
-      return "bg-blue-50 text-blue-700";
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "confirmed":
+        return (
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-700 border border-sky-200/60">
+            <span className="h-1.5 w-1.5 rounded-full bg-sky-500" />
+            Confirmed
+          </span>
+        );
+      case "packed":
+        return (
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700 border border-amber-200/60">
+            <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+            Packed
+          </span>
+        );
+      case "out-for-delivery":
+        return (
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700 border border-blue-200/60">
+            <span className="h-1.5 w-1.5 rounded-full bg-blue-600 animate-pulse" />
+            Out for Delivery
+          </span>
+        );
+      case "delivered":
+        return (
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 border border-emerald-200/60">
+            <CheckCircle2 className="h-3 w-3 text-emerald-600" />
+            Delivered
+          </span>
+        );
+      default:
+        return (
+          <span className="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
+            {formatStatus(status)}
+          </span>
+        );
     }
-
-    if (status === "packed") {
-      return "bg-amber-50 text-amber-700";
-    }
-
-    if (
-      status === "out-for-delivery"
-    ) {
-      return "bg-violet-50 text-violet-700";
-    }
-
-    if (status === "delivered") {
-      return "bg-emerald-50 text-emerald-700";
-    }
-
-    return "bg-gray-100 text-gray-600";
   };
 
-  const getAddress = () => {
-    if (!order) {
-      return "N/A";
-    }
-
-    const value = [
-      order.deliveryAddress
-        ?.houseNo,
-      order.deliveryAddress
-        ?.street,
-      order.deliveryAddress
-        ?.area,
-      order.deliveryAddress
-        ?.city,
-      order.deliveryAddress
-        ?.pincode,
-    ]
-      .filter(Boolean)
-      .join(", ");
-
-    return value || "N/A";
+  const getFullAddress = () => {
+    if (!order) return "N/A";
+    const parts = [
+      order.deliveryAddress?.houseNo,
+      order.deliveryAddress?.street,
+      order.deliveryAddress?.area,
+      order.deliveryAddress?.city,
+      order.deliveryAddress?.pincode,
+    ].filter(Boolean);
+    return parts.join(", ") || "No address provided";
   };
 
   const getMapUrl = () => {
     if (order?.mapUrl) {
       return order.mapUrl;
     }
-
-    const latitude =
-      order?.deliveryLocation
-        ?.latitude;
-
-    const longitude =
-      order?.deliveryLocation
-        ?.longitude;
-
-    if (
-      latitude === undefined ||
-      longitude === undefined
-    ) {
-      return "";
+    const lat = order?.deliveryLocation?.latitude;
+    const lng = order?.deliveryLocation?.longitude;
+    if (lat !== undefined && lng !== undefined) {
+      return `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
     }
-
-    return `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`;
+    if (order?.deliveryAddress?.street || order?.deliveryAddress?.city) {
+      const query = encodeURIComponent(getFullAddress());
+      return `https://www.google.com/maps/search/?api=1&query=${query}`;
+    }
+    return "";
   };
 
-  const getSubtotal = (
-    item: OrderItem
-  ) => {
-    return (
-      item.subtotal ??
-      Number(item.price) *
-        Number(item.quantity)
-    );
+  const getSubtotal = (item: OrderItem) => {
+    return item.subtotal ?? Number(item.price || 0) * Number(item.quantity || 1);
   };
 
+  // Stepper calculations
+  const steps = [
+    { id: "confirmed", label: "Confirmed" },
+    { id: "packed", label: "Packed" },
+    { id: "out-for-delivery", label: "Out for Delivery" },
+    { id: "delivered", label: "Delivered" },
+  ];
+
+  const getStepStatus = (stepId: string) => {
+    const currentStatus = order?.status || "confirmed";
+    const statusOrder = ["confirmed", "packed", "out-for-delivery", "delivered"];
+    const currentIndex = statusOrder.indexOf(currentStatus);
+    const stepIndex = statusOrder.indexOf(stepId);
+
+    if (stepIndex < currentIndex) return "completed";
+    if (stepIndex === currentIndex) return "current";
+    return "pending";
+  };
+
+  // SKELETON LOADING
   if (loading) {
     return (
-      <DeliveryDashboardLayout
-        title="Order Details"
-        subtitle="Delivery information"
-      >
-        <div className="flex min-h-[500px] w-full items-center justify-center">
-          <div className="text-center">
-            <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-gray-200 border-t-blue-600" />
-
-            <p className="mt-4 text-sm text-gray-500">
-              Loading order...
-            </p>
+      <div className="w-full space-y-6 animate-pulse">
+        <div className="h-6 w-32 rounded-lg bg-slate-200" />
+        <div className="h-28 w-full rounded-2xl bg-slate-200" />
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          <div className="lg:col-span-2 space-y-6">
+            <div className="h-64 rounded-2xl bg-slate-200" />
+            <div className="h-64 rounded-2xl bg-slate-200" />
           </div>
+          <div className="h-96 rounded-2xl bg-slate-200" />
         </div>
-      </DeliveryDashboardLayout>
+      </div>
     );
   }
 
+  // ORDER NOT FOUND
   if (!order) {
     return (
-      <DeliveryDashboardLayout
-        title="Order Details"
-        subtitle="Delivery information"
-      >
-        <div className="w-full rounded-2xl border border-red-100 bg-white p-6 text-center sm:p-10">
-          <Package className="mx-auto h-10 w-10 text-red-300" />
+      <div className="w-full space-y-4">
+        <button
+          type="button"
+          onClick={() => navigate("/delivery/orders")}
+          className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-blue-600 transition"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to Active Orders
+        </button>
 
-          <h3 className="mt-4 font-bold text-gray-900">
-            Order unavailable
+        <div className="rounded-2xl border border-red-200 bg-white p-12 text-center shadow-xs">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-red-50 text-red-500">
+            <Package className="h-7 w-7" />
+          </div>
+          <h3 className="mt-4 text-base font-bold text-slate-900">
+            Order Unavailable
           </h3>
-
-          <p className="mt-2 text-sm text-gray-500">
-            {error ||
-              "Unable to find this order."}
+          <p className="mt-1 text-xs text-slate-500 max-w-sm mx-auto">
+            {error || "This order could not be retrieved. It may not be assigned to your account."}
           </p>
+          <button
+            type="button"
+            onClick={() => navigate("/delivery/orders")}
+            className="mt-5 inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-blue-700 transition"
+          >
+            Return to Active Orders
+          </button>
         </div>
-      </DeliveryDashboardLayout>
+      </div>
     );
   }
 
   const mapUrl = getMapUrl();
 
   return (
-    <DeliveryDashboardLayout
-      title="Order Details"
-      subtitle={`Order #${order.orderNumber}`}
-    >
-      <div className="w-full min-w-0">
+    <div className="w-full space-y-6">
+      {/* Top Back Navigation */}
+      <div className="flex items-center justify-between">
         <button
           type="button"
-          onClick={() =>
-            navigate(
-              "/delivery/orders"
-            )
-          }
-          className="mb-5 inline-flex items-center gap-2 text-sm font-semibold text-gray-500 transition hover:text-blue-600"
+          onClick={() => navigate(-1)}
+          className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-blue-600 transition"
         >
           <ArrowLeft className="h-4 w-4" />
-          Active Orders
+          Back
         </button>
 
-        {error && (
-          <div className="mb-5 w-full rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-600">
-            {error}
-          </div>
-        )}
+        <button
+          type="button"
+          onClick={fetchOrder}
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-900 transition"
+        >
+          <RefreshCw className="h-3.5 w-3.5" />
+          Refresh Order
+        </button>
+      </div>
 
-        {success && (
-          <div className="mb-5 flex w-full items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
-            <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0" />
+      {/* ERROR & SUCCESS BANNERS */}
+      {error && (
+        <div className="flex items-center gap-2.5 rounded-2xl border border-red-200 bg-red-50 p-4 text-xs sm:text-sm font-medium text-red-700 shadow-xs">
+          <AlertCircle className="h-5 w-5 shrink-0 text-red-500" />
+          <span className="flex-1">{error}</span>
+        </div>
+      )}
 
-            <span className="min-w-0 break-words">
-              {success}
-            </span>
-          </div>
-        )}
+      {success && (
+        <div className="flex items-center gap-2.5 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-xs sm:text-sm font-medium text-emerald-800 shadow-xs">
+          <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-600" />
+          <span className="flex-1">{success}</span>
+        </div>
+      )}
 
-        <div className="mb-5 w-full rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex min-w-0 items-start gap-3 sm:items-center sm:gap-4">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-50 sm:h-12 sm:w-12">
-                <Package className="h-5 w-5 text-blue-600 sm:h-6 sm:w-6" />
+      {/* ORDER HERO CARD */}
+      <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs sm:p-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-3.5">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 shadow-xs">
+              <Package className="h-6 w-6" />
+            </div>
+            <div>
+              <div className="flex flex-wrap items-center gap-2.5">
+                <h1 className="text-lg font-bold tracking-tight text-slate-900 sm:text-xl">
+                  Order #{order.orderNumber}
+                </h1>
+                {getStatusBadge(order.status)}
               </div>
-
-              <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                  <h2 className="break-all text-lg font-bold text-gray-900 sm:text-xl">
-                    #{order.orderNumber}
-                  </h2>
-
-                  <span
-                    className={`rounded-full px-3 py-1 text-xs font-semibold ${statusStyle(
-                      order.status
-                    )}`}
-                  >
-                    {formatStatus(
-                      order.status
-                    )}
-                  </span>
-                </div>
-
-                <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-gray-500 sm:gap-x-3">
-                  <span>
-                    {order.customer
-                      ?.name ||
-                      "Customer"}
-                  </span>
-
-                  <span className="text-gray-300">
-                    •
-                  </span>
-
-                  <span>
-                    ₹
-                    {Number(
-                      order.totalAmount
-                    ).toLocaleString(
-                      "en-IN"
-                    )}
-                  </span>
-
-                  <span className="text-gray-300">
-                    •
-                  </span>
-
-                  <span className="font-medium capitalize text-emerald-600">
-                    {order.paymentStatus}
-                  </span>
-                </div>
+              <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
+                <span>
+                  Placed:{" "}
+                  {order.createdAt
+                    ? new Date(order.createdAt).toLocaleDateString("en-IN", {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })
+                    : "N/A"}
+                </span>
+                <span className="text-slate-300">•</span>
+                <span className="inline-flex items-center gap-1 font-semibold text-emerald-600">
+                  <CreditCard className="h-3 w-3" />
+                  Paid Online
+                </span>
               </div>
             </div>
+          </div>
 
-            {order.status ===
-              "delivered" && (
-              <div className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700 sm:w-auto">
-                <CheckCircle2 className="h-5 w-5" />
-                Delivery Completed
-              </div>
-            )}
+          <div className="text-left sm:text-right border-t sm:border-t-0 pt-3 sm:pt-0 border-slate-100">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+              Total Order Value
+            </span>
+            <p className="text-2xl font-extrabold text-slate-900">
+              ₹{Number(order.totalAmount || 0).toLocaleString("en-IN")}
+            </p>
           </div>
         </div>
 
-        <div className="grid w-full min-w-0 gap-5 xl:grid-cols-[minmax(0,2fr)_minmax(280px,1fr)]">
-          <div className="min-w-0 space-y-5">
-            <div className="w-full min-w-0 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
-              <div className="border-b border-gray-100 px-4 py-4 sm:px-5">
-                <h3 className="font-bold text-gray-900">
-                  Delivery Information
-                </h3>
-
-                <p className="mt-1 text-sm text-gray-500">
-                  Customer and delivery
-                  destination
-                </p>
-              </div>
-
-              <div className="p-4 sm:p-5">
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                  <div className="flex min-w-0 items-start gap-3 rounded-xl bg-gray-50 p-4">
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-100">
-                      <User className="h-4 w-4 text-blue-600" />
-                    </div>
-
-                    <div className="min-w-0">
-                      <p className="text-xs font-medium uppercase tracking-wide text-gray-400">
-                        Customer
-                      </p>
-
-                      <p className="mt-1 break-words text-sm font-semibold text-gray-900">
-                        {order.customer
-                          ?.name ||
-                          "N/A"}
-                      </p>
-                    </div>
+        {/* DELIVERY PROGRESS STEPPER */}
+        <div className="mt-6 pt-6 border-t border-slate-100">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-4">
+            Delivery Lifecycle
+          </p>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-4">
+            {steps.map((step, idx) => {
+              const state = getStepStatus(step.id);
+              return (
+                <div
+                  key={step.id}
+                  className={`relative flex items-center gap-2.5 rounded-xl p-3 border transition ${
+                    state === "completed"
+                      ? "bg-emerald-50/60 border-emerald-200/80 text-emerald-900"
+                      : state === "current"
+                      ? "bg-blue-50 border-blue-300 text-blue-900 ring-2 ring-blue-500/10"
+                      : "bg-slate-50 border-slate-200/60 text-slate-400"
+                  }`}
+                >
+                  <div
+                    className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
+                      state === "completed"
+                        ? "bg-emerald-600 text-white"
+                        : state === "current"
+                        ? "bg-blue-600 text-white"
+                        : "bg-slate-200 text-slate-600"
+                    }`}
+                  >
+                    {state === "completed" ? (
+                      <CheckCircle2 className="h-3.5 w-3.5" />
+                    ) : (
+                      idx + 1
+                    )}
                   </div>
-
-                  <div className="flex min-w-0 items-start gap-3 rounded-xl bg-gray-50 p-4">
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-100">
-                      <Phone className="h-4 w-4 text-emerald-600" />
-                    </div>
-
-                    <div className="min-w-0">
-                      <p className="text-xs font-medium uppercase tracking-wide text-gray-400">
-                        Phone
-                      </p>
-
-                      <p className="mt-1 break-words text-sm font-semibold text-gray-900">
-                        {order.customer
-                          ?.phone ||
-                          "N/A"}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex min-w-0 items-start gap-3 rounded-xl bg-gray-50 p-4 sm:col-span-2 lg:col-span-1">
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-violet-100">
-                      <Mail className="h-4 w-4 text-violet-600" />
-                    </div>
-
-                    <div className="min-w-0">
-                      <p className="text-xs font-medium uppercase tracking-wide text-gray-400">
-                        Email
-                      </p>
-
-                      <p className="mt-1 break-all text-sm font-semibold text-gray-900">
-                        {order.customer
-                          ?.email ||
-                          "N/A"}
-                      </p>
-                    </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-xs font-bold">{step.label}</p>
+                    <p className="text-[10px] opacity-75 capitalize">
+                      {state === "completed"
+                        ? "Completed"
+                        : state === "current"
+                        ? "In Progress"
+                        : "Pending"}
+                    </p>
                   </div>
                 </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
 
-                <div className="mt-4 rounded-xl border border-gray-200 p-4 sm:p-5">
-                  <div className="flex items-start gap-3 sm:gap-4">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-red-50">
-                      <MapPin className="h-5 w-5 text-red-500" />
-                    </div>
-
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold text-gray-900">
-                        Delivery Address
-                      </p>
-
-                      <p className="mt-2 break-words text-sm leading-6 text-gray-600">
-                        {getAddress()}
-                      </p>
-
-                      <div className="mt-3 flex flex-col gap-1 text-xs text-gray-400 sm:flex-row sm:flex-wrap sm:gap-x-5 sm:gap-y-2">
-                        <span className="break-all">
-                          Lat:{" "}
-                          {order
-                            .deliveryLocation
-                            ?.latitude ??
-                            "N/A"}
-                        </span>
-
-                        <span className="break-all">
-                          Lng:{" "}
-                          {order
-                            .deliveryLocation
-                            ?.longitude ??
-                            "N/A"}
-                        </span>
-                      </div>
-
-                      {mapUrl && (
-                        <a
-                          href={mapUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg bg-gray-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-gray-800 sm:inline-flex sm:w-auto"
-                        >
-                          <MapPin className="h-4 w-4" />
-                          Open Google Maps
-                          <ExternalLink className="h-4 w-4" />
-                        </a>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
+      {/* TWO COLUMN CONTENT LAYOUT */}
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+        {/* LEFT COLUMN: Customer, Address & Items (2 spans on xl) */}
+        <div className="xl:col-span-2 space-y-6">
+          {/* CUSTOMER & DESTINATION */}
+          <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-xs">
+            <div className="border-b border-slate-100 p-5">
+              <h2 className="text-sm font-bold text-slate-900">
+                Customer & Delivery Information
+              </h2>
+              <p className="text-xs font-medium text-slate-500">
+                Recipient contact details and destination address
+              </p>
             </div>
 
-            <div className="w-full min-w-0 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
-              <div className="border-b border-gray-100 px-4 py-4 sm:px-5">
-                <h3 className="font-bold text-gray-900">
-                  Order Items
-                </h3>
+            <div className="p-5 space-y-4">
+              {/* Customer Contact Badges */}
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <div className="flex items-start gap-3 rounded-xl bg-slate-50 p-3.5 border border-slate-100">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-100 text-blue-600">
+                    <User className="h-4 w-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <span className="text-[11px] font-bold uppercase text-slate-400">
+                      Customer
+                    </span>
+                    <p className="text-xs font-bold text-slate-900 truncate">
+                      {order.customer?.name || "N/A"}
+                    </p>
+                  </div>
+                </div>
 
-                <p className="mt-1 text-sm text-gray-500">
-                  Items to be delivered
-                </p>
+                <div className="flex items-start gap-3 rounded-xl bg-slate-50 p-3.5 border border-slate-100">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-100 text-emerald-600">
+                    <Phone className="h-4 w-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <span className="text-[11px] font-bold uppercase text-slate-400">
+                      Phone Number
+                    </span>
+                    {order.customer?.phone ? (
+                      <a
+                        href={`tel:${order.customer.phone}`}
+                        className="block text-xs font-bold text-blue-600 hover:underline truncate"
+                      >
+                        {order.customer.phone}
+                      </a>
+                    ) : (
+                      <p className="text-xs font-bold text-slate-900">N/A</p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3 rounded-xl bg-slate-50 p-3.5 border border-slate-100">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-indigo-100 text-indigo-600">
+                    <Mail className="h-4 w-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <span className="text-[11px] font-bold uppercase text-slate-400">
+                      Email Address
+                    </span>
+                    {order.customer?.email ? (
+                      <a
+                        href={`mailto:${order.customer.email}`}
+                        className="block text-xs font-bold text-blue-600 hover:underline truncate"
+                      >
+                        {order.customer.email}
+                      </a>
+                    ) : (
+                      <p className="text-xs font-bold text-slate-900">N/A</p>
+                    )}
+                  </div>
+                </div>
               </div>
 
-              <div className="space-y-3 p-4 md:hidden">
-                {order.items?.map(
-                  (item, index) => (
-                    <div
-                      key={
-                        item._id ||
-                        index
-                      }
-                      className="rounded-xl border border-gray-200 p-4"
-                    >
-                      <div className="flex items-start gap-3">
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-50">
-                          <Package className="h-5 w-5 text-blue-600" />
-                        </div>
+              {/* Delivery Address Card */}
+              <div className="rounded-xl border border-slate-200/80 p-4 bg-slate-50/50">
+                <div className="flex items-start gap-3">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-red-50 text-red-600">
+                    <MapPin className="h-5 w-5" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                      Delivery Address
+                    </h3>
+                    <p className="mt-1 text-sm font-semibold text-slate-800 leading-relaxed">
+                      {getFullAddress()}
+                    </p>
 
-                        <div className="min-w-0 flex-1">
-                          <p className="break-words font-semibold text-gray-900">
-                            {item.name ||
-                              item.product
-                                ?.name ||
-                              "Product"}
-                          </p>
-
-                          {item.product
-                            ?.size !==
-                            undefined && (
-                            <p className="mt-1 text-xs text-gray-400">
-                              {
-                                item.product
-                                  .size
-                              }{" "}
-                              {item.product
-                                .unit || ""}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="mt-4 grid grid-cols-2 gap-3 border-t border-gray-100 pt-4">
-                        <div className="min-w-0">
-                          <p className="text-xs text-gray-400">
-                            Type
-                          </p>
-
-                          <p className="mt-1 break-words text-sm font-medium capitalize text-gray-700">
-                            {item.purchaseType
-                              ?.replace(
-                                /-/g,
-                                " "
-                              ) ||
-                              "N/A"}
-                          </p>
-                        </div>
-
-                        <div>
-                          <p className="text-xs text-gray-400">
-                            Quantity
-                          </p>
-
-                          <p className="mt-1 text-sm font-semibold text-gray-700">
-                            {item.quantity}
-                          </p>
-                        </div>
-
-                        <div>
-                          <p className="text-xs text-gray-400">
-                            Price
-                          </p>
-
-                          <p className="mt-1 text-sm font-semibold text-gray-700">
-                            ₹
-                            {Number(
-                              item.price
-                            ).toLocaleString(
-                              "en-IN"
-                            )}
-                          </p>
-                        </div>
-
-                        <div>
-                          <p className="text-xs text-gray-400">
-                            Total
-                          </p>
-
-                          <p className="mt-1 text-sm font-bold text-gray-900">
-                            ₹
-                            {Number(
-                              getSubtotal(
-                                item
-                              )
-                            ).toLocaleString(
-                              "en-IN"
-                            )}
-                          </p>
-                        </div>
-                      </div>
+                    {/* Coordinates */}
+                    <div className="mt-2.5 flex flex-wrap items-center gap-3 text-xs text-slate-400">
+                      <span>Lat: {order.deliveryLocation?.latitude ?? "N/A"}</span>
+                      <span>•</span>
+                      <span>Lng: {order.deliveryLocation?.longitude ?? "N/A"}</span>
                     </div>
-                  )
-                )}
-              </div>
 
-              <div className="hidden w-full min-w-0 md:block">
-                <table className="w-full table-auto">
-                  <thead>
-                    <tr className="bg-gray-50">
-                      <th className="w-[38%] px-3 py-3 text-left text-xs font-semibold uppercase text-gray-400 lg:px-5">
-                        Product
-                      </th>
-
-                      <th className="w-[22%] px-3 py-3 text-left text-xs font-semibold uppercase text-gray-400 lg:px-5">
-                        Purchase Type
-                      </th>
-
-                      <th className="w-[10%] px-3 py-3 text-center text-xs font-semibold uppercase text-gray-400 lg:px-5">
-                        Qty
-                      </th>
-
-                      <th className="w-[15%] px-3 py-3 text-right text-xs font-semibold uppercase text-gray-400 lg:px-5">
-                        Price
-                      </th>
-
-                      <th className="w-[15%] px-3 py-3 text-right text-xs font-semibold uppercase text-gray-400 lg:px-5">
-                        Total
-                      </th>
-                    </tr>
-                  </thead>
-
-                  <tbody className="divide-y divide-gray-100">
-                    {order.items?.map(
-                      (item, index) => (
-                        <tr
-                          key={
-                            item._id ||
-                            index
-                          }
-                          className="transition hover:bg-gray-50"
-                        >
-                          <td className="px-3 py-4 align-middle lg:px-5">
-                            <div className="flex min-w-0 items-center gap-3">
-                              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-50">
-                                <Package className="h-5 w-5 text-blue-600" />
-                              </div>
-
-                              <div className="min-w-0">
-                                <p className="break-words font-semibold text-gray-900">
-                                  {item.name ||
-                                    item
-                                      .product
-                                      ?.name ||
-                                    "Product"}
-                                </p>
-
-                                {item
-                                  .product
-                                  ?.size !==
-                                  undefined && (
-                                  <p className="mt-1 text-xs text-gray-400">
-                                    {
-                                      item
-                                        .product
-                                        .size
-                                    }{" "}
-                                    {item
-                                      .product
-                                      .unit ||
-                                      ""}
-                                  </p>
-                                )}
-                              </div>
-                            </div>
-                          </td>
-
-                          <td className="px-3 py-4 text-sm capitalize text-gray-600 lg:px-5">
-                            <span className="break-words">
-                              {item.purchaseType
-                                ?.replace(
-                                  /-/g,
-                                  " "
-                                ) ||
-                                "N/A"}
-                            </span>
-                          </td>
-
-                          <td className="px-3 py-4 text-center font-semibold text-gray-700 lg:px-5">
-                            {item.quantity}
-                          </td>
-
-                          <td className="px-3 py-4 text-right text-sm text-gray-600 lg:px-5">
-                            ₹
-                            {Number(
-                              item.price
-                            ).toLocaleString(
-                              "en-IN"
-                            )}
-                          </td>
-
-                          <td className="px-3 py-4 text-right font-bold text-gray-900 lg:px-5">
-                            ₹
-                            {Number(
-                              getSubtotal(
-                                item
-                              )
-                            ).toLocaleString(
-                              "en-IN"
-                            )}
-                          </td>
-                        </tr>
-                      )
+                    {/* Google Maps Button */}
+                    {mapUrl && (
+                      <a
+                        href={mapUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="mt-3.5 inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-xs font-bold text-white shadow-xs transition hover:bg-slate-800"
+                      >
+                        <MapPin className="h-3.5 w-3.5 text-red-400" />
+                        <span>Navigate in Google Maps</span>
+                        <ExternalLink className="h-3.5 w-3.5 opacity-70" />
+                      </a>
                     )}
-                  </tbody>
-                </table>
-              </div>
-
-              <div className="flex justify-end border-t border-gray-100 bg-gray-50 px-4 py-4 sm:px-5">
-                <div className="text-right">
-                  <p className="text-xs font-medium uppercase text-gray-400">
-                    Total Amount
-                  </p>
-
-                  <p className="mt-1 text-2xl font-bold text-gray-900">
-                    ₹
-                    {Number(
-                      order.totalAmount
-                    ).toLocaleString(
-                      "en-IN"
-                    )}
-                  </p>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="min-w-0">
-            <div className="w-full rounded-2xl border border-gray-200 bg-white shadow-sm xl:sticky xl:top-24">
-              <div className="border-b border-gray-100 p-4 sm:p-5">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-50">
-                    {order.status ===
-                    "delivered" ? (
-                      <CheckCircle2 className="h-5 w-5 text-emerald-600" />
-                    ) : (
-                      <Truck className="h-5 w-5 text-blue-600" />
-                    )}
+          {/* ORDER ITEMS LIST */}
+          <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-xs">
+            <div className="border-b border-slate-100 p-5">
+              <h2 className="text-sm font-bold text-slate-900">Order Items</h2>
+              <p className="text-xs font-medium text-slate-500">
+                Products and package quantities to deliver
+              </p>
+            </div>
+
+            {/* Mobile View (< md): Stacked Cards */}
+            <div className="divide-y divide-slate-100 md:hidden">
+              {order.items?.map((item, idx) => (
+                <div key={item._id || idx} className="p-4 space-y-2.5">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-start gap-2.5">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+                        <Package className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold text-slate-900">
+                          {item.name || item.product?.name || "Water Product"}
+                        </p>
+                        {item.product?.size !== undefined && (
+                          <p className="text-[11px] text-slate-500">
+                            {item.product.size} {item.product.unit || "L"}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <span className="text-xs font-bold text-slate-900">
+                      ₹{Number(getSubtotal(item)).toLocaleString("en-IN")}
+                    </span>
                   </div>
 
-                  <div className="min-w-0">
-                    <h3 className="font-bold text-gray-900">
-                      Delivery Action
-                    </h3>
-
-                    <p className="text-xs text-gray-500">
-                      Secure delivery
-                      confirmation
-                    </p>
+                  <div className="flex items-center justify-between text-xs bg-slate-50 p-2.5 rounded-lg border border-slate-100">
+                    <span className="capitalize text-slate-500 font-medium">
+                      {item.purchaseType?.replace(/-/g, " ") || "Standard"}
+                    </span>
+                    <span className="font-semibold text-slate-700">
+                      Qty: {item.quantity} × ₹{Number(item.price || 0).toLocaleString("en-IN")}
+                    </span>
                   </div>
                 </div>
+              ))}
+            </div>
+
+            {/* Desktop View (>= md): Table */}
+            <div className="hidden md:block w-full overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-slate-100 bg-slate-50/75 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                    <th className="py-3 px-6">Product</th>
+                    <th className="py-3 px-6">Type</th>
+                    <th className="py-3 px-6 text-center">Qty</th>
+                    <th className="py-3 px-6 text-right">Price</th>
+                    <th className="py-3 px-6 text-right">Subtotal</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 text-sm">
+                  {order.items?.map((item, idx) => (
+                    <tr key={item._id || idx} className="hover:bg-slate-50/50">
+                      <td className="py-3.5 px-6">
+                        <p className="font-bold text-slate-900">
+                          {item.name || item.product?.name || "Water Product"}
+                        </p>
+                        {item.product?.size !== undefined && (
+                          <p className="text-xs text-slate-500">
+                            {item.product.size} {item.product.unit || "L"}
+                          </p>
+                        )}
+                      </td>
+                      <td className="py-3.5 px-6 text-xs capitalize text-slate-600">
+                        {item.purchaseType?.replace(/-/g, " ") || "Standard"}
+                      </td>
+                      <td className="py-3.5 px-6 text-center font-bold text-slate-800">
+                        {item.quantity}
+                      </td>
+                      <td className="py-3.5 px-6 text-right text-xs text-slate-600">
+                        ₹{Number(item.price || 0).toLocaleString("en-IN")}
+                      </td>
+                      <td className="py-3.5 px-6 text-right font-bold text-slate-900">
+                        ₹{Number(getSubtotal(item)).toLocaleString("en-IN")}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Total Footer */}
+            <div className="flex items-center justify-between border-t border-slate-100 bg-slate-50/75 p-5">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                Grand Total Amount
+              </span>
+              <span className="text-xl font-extrabold text-slate-900">
+                ₹{Number(order.totalAmount || 0).toLocaleString("en-IN")}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* RIGHT COLUMN: Delivery Action Card (Sticky on desktop) */}
+        <div className="space-y-6">
+          <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs xl:sticky xl:top-24">
+            <div className="border-b border-slate-100 pb-4">
+              <div className="flex items-center gap-2.5">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+                  <Truck className="h-5 w-5" />
+                </div>
+                <div>
+                  <h2 className="text-sm font-bold text-slate-900">
+                    Fulfillment Action
+                  </h2>
+                  <p className="text-xs font-medium text-slate-500">
+                    OTP Delivery Verification
+                  </p>
+                </div>
               </div>
+            </div>
 
-              <div className="p-4 sm:p-5">
-                {order.status ===
-                "delivered" ? (
-                  <div className="text-center">
-                    <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-50">
-                      <CheckCircle2 className="h-8 w-8 text-emerald-600" />
-                    </div>
-
-                    <h4 className="mt-4 text-lg font-bold text-gray-900">
+            <div className="pt-4">
+              {/* STATE 1: ALREADY DELIVERED */}
+              {order.status === "delivered" ? (
+                <div className="text-center py-4 space-y-3">
+                  <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
+                    <CheckCircle2 className="h-8 w-8" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-slate-900">
                       Delivery Completed
-                    </h4>
-
-                    <p className="mt-2 text-sm leading-6 text-gray-500">
-                      This order has been
-                      successfully delivered
-                      to the customer.
-                    </p>
-
-                    <button
-                      type="button"
-                      onClick={() =>
-                        navigate(
-                          "/delivery/delivered"
-                        )
-                      }
-                      className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-gray-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-gray-800"
-                    >
-                      Delivered Orders
-
-                      <ChevronRight className="h-4 w-4" />
-                    </button>
-                  </div>
-                ) : order.status !==
-                  "out-for-delivery" ? (
-                  <div className="rounded-xl bg-amber-50 p-4">
-                    <p className="text-sm font-semibold text-amber-800">
-                      Delivery confirmation
-                      unavailable
-                    </p>
-
-                    <p className="mt-2 text-sm leading-6 text-amber-700">
-                      This order must be
-                      marked Out For
-                      Delivery by the admin
-                      before delivery can be
-                      confirmed.
+                    </h3>
+                    <p className="mt-1 text-xs text-slate-500 leading-relaxed">
+                      This order has been verified and safely handed over to the customer.
                     </p>
                   </div>
-                ) : !otpSent ? (
-                  <div>
-                    <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50">
-                      <ShieldCheck className="h-6 w-6 text-emerald-600" />
+                  {order.deliveredAt && (
+                    <div className="rounded-xl bg-slate-50 p-3 border border-slate-100 text-xs text-slate-600">
+                      <span className="font-semibold text-slate-800">Delivered On: </span>
+                      {new Date(order.deliveredAt).toLocaleString("en-IN")}
                     </div>
-
-                    <h4 className="mt-4 text-lg font-bold text-gray-900">
-                      Ready to deliver?
-                    </h4>
-
-                    <p className="mt-2 text-sm leading-6 text-gray-500">
-                      Confirm that you are
-                      with the customer. A
-                      verification OTP will
-                      be sent to their
-                      registered email.
-                    </p>
-
-                    <div className="mt-4 rounded-xl bg-gray-50 p-4">
-                      <p className="text-xs font-medium uppercase text-gray-400">
-                        Customer Email
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => navigate("/delivery/delivered")}
+                    className="w-full flex items-center justify-center gap-1.5 rounded-xl bg-slate-900 py-2.5 text-xs font-bold text-white transition hover:bg-slate-800"
+                  >
+                    <span>View Delivered Orders</span>
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                </div>
+              ) : order.status !== "out-for-delivery" ? (
+                /* STATE 2: NOT OUT FOR DELIVERY YET */
+                <div className="space-y-3 py-2">
+                  <div className="flex items-start gap-3 rounded-xl bg-amber-50 p-4 border border-amber-200/80">
+                    <AlertCircle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-xs font-bold text-amber-900">
+                        Awaiting Route Dispatch
                       </p>
-
-                      <p className="mt-1 break-all text-sm font-semibold text-gray-700">
-                        {order.customer
-                          ?.email ||
-                          "Email unavailable"}
+                      <p className="mt-1 text-xs text-amber-700 leading-relaxed">
+                        This order is currently{" "}
+                        <span className="font-bold underline uppercase">
+                          {order.status}
+                        </span>
+                        . It must be updated to{" "}
+                        <span className="font-bold">Out for Delivery</span> by the admin before customer OTP verification can take place.
                       </p>
                     </div>
+                  </div>
+                  <p className="text-[11px] text-slate-400 text-center leading-relaxed">
+                    Once marked Out for Delivery, you can send the OTP to the customer upon arrival.
+                  </p>
+                </div>
+              ) : !otpSent ? (
+                /* STATE 3: OUT FOR DELIVERY & OTP NOT YET TRIGGERED */
+                <div className="space-y-4 py-2">
+                  <div className="flex items-center gap-3 rounded-xl bg-blue-50/70 p-3.5 border border-blue-100">
+                    <ShieldCheck className="h-6 w-6 text-blue-600 shrink-0" />
+                    <div className="min-w-0 text-xs">
+                      <p className="font-bold text-slate-900">Ready to Deliver?</p>
+                      <p className="text-slate-500">
+                        Confirm you are at the customer's delivery destination.
+                      </p>
+                    </div>
+                  </div>
 
-                    <button
-                      type="button"
-                      onClick={
-                        handleSendOtp
-                      }
-                      disabled={
-                        sendingOtp
-                      }
-                      className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      {sendingOtp ? (
-                        <>
-                          <RefreshCw className="h-4 w-4 animate-spin" />
-                          Sending OTP...
-                        </>
-                      ) : (
-                        <>
-                          <CheckCircle2 className="h-4 w-4" />
-                          Confirm Delivery
-                        </>
-                      )}
-                    </button>
-
-                    <p className="mt-3 text-center text-xs leading-5 text-gray-400">
-                      Delivery is completed
-                      only after successful
-                      OTP verification.
+                  <div className="rounded-xl bg-slate-50 p-3 border border-slate-100 text-xs">
+                    <span className="text-[11px] font-bold uppercase text-slate-400">
+                      OTP will be sent to:
+                    </span>
+                    <p className="mt-0.5 font-bold text-slate-800 break-all">
+                      {order.customer?.email || "No email on record"}
                     </p>
                   </div>
-                ) : (
-                  <div>
-                    <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50">
-                      <Mail className="h-6 w-6 text-blue-600" />
+
+                  <button
+                    type="button"
+                    onClick={handleSendOtp}
+                    disabled={sendingOtp || !order.customer?.email}
+                    className="w-full flex items-center justify-center gap-2 rounded-xl bg-blue-600 py-3 text-xs font-bold text-white shadow-xs transition hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {sendingOtp ? (
+                      <>
+                        <RefreshCw className="h-4 w-4 animate-spin" />
+                        <span>Sending Delivery OTP...</span>
+                      </>
+                    ) : (
+                      <>
+                        <ShieldCheck className="h-4 w-4" />
+                        <span>Send Customer OTP</span>
+                      </>
+                    )}
+                  </button>
+
+                  <p className="text-[11px] text-slate-400 text-center leading-relaxed">
+                    A secure 6-digit OTP will be generated and emailed to the customer. Valid for 5 minutes.
+                  </p>
+                </div>
+              ) : (
+                /* STATE 4: OTP SENT - AWAITING VERIFICATION */
+                <div className="space-y-4 py-2">
+                  <div className="flex items-center gap-3 rounded-xl bg-emerald-50 p-3 border border-emerald-200">
+                    <Mail className="h-5 w-5 text-emerald-600 shrink-0" />
+                    <div className="text-xs">
+                      <p className="font-bold text-emerald-900">OTP Sent Successfully!</p>
+                      <p className="text-emerald-700 text-[11px]">
+                        Ask customer for the code sent to {order.customer?.email}
+                      </p>
                     </div>
+                  </div>
 
-                    <h4 className="mt-4 text-lg font-bold text-gray-900">
-                      Verify Customer OTP
-                    </h4>
-
-                    <p className="mt-2 text-sm leading-6 text-gray-500">
-                      We sent a 6-digit OTP
-                      to the customer's
-                      registered email. Ask
-                      the customer for the
-                      OTP.
-                    </p>
-
-                    <label className="mt-5 block text-sm font-semibold text-gray-700">
-                      Delivery OTP
+                  <div>
+                    <label
+                      htmlFor="delivery-otp-input"
+                      className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5"
+                    >
+                      Enter 6-Digit OTP
                     </label>
-
                     <input
+                      id="delivery-otp-input"
                       type="text"
                       inputMode="numeric"
                       maxLength={6}
                       value={otp}
-                      onChange={(event) =>
-                        setOtp(
-                          event.target.value
-                            .replace(
-                              /\D/g,
-                              ""
-                            )
-                            .slice(0, 6)
-                        )
+                      onChange={(e) =>
+                        setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))
                       }
-                      placeholder="Enter 6-digit OTP"
-                      className="mt-2 w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-3 text-center text-lg font-bold tracking-[0.2em] text-gray-900 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-50 sm:px-4 sm:text-xl sm:tracking-[0.35em]"
+                      placeholder="• • • • • •"
+                      className="w-full text-center tracking-[0.35em] text-xl font-bold py-3 rounded-xl border border-slate-300 bg-slate-50/50 text-slate-900 shadow-xs focus:bg-white focus:border-blue-500 focus:outline-hidden focus:ring-4 focus:ring-blue-500/10 transition"
                     />
-
-                    <button
-                      type="button"
-                      onClick={
-                        handleVerifyOtp
-                      }
-                      disabled={
-                        verifyingOtp ||
-                        otp.length !== 6
-                      }
-                      className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      {verifyingOtp ? (
-                        <>
-                          <RefreshCw className="h-4 w-4 animate-spin" />
-                          Verifying...
-                        </>
-                      ) : (
-                        <>
-                          <ShieldCheck className="h-4 w-4" />
-                          Verify & Complete
-                        </>
-                      )}
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={
-                        handleSendOtp
-                      }
-                      disabled={
-                        sendingOtp
-                      }
-                      className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-gray-200 px-4 py-3 text-sm font-semibold text-gray-600 transition hover:bg-gray-50 disabled:opacity-50"
-                    >
-                      <RefreshCw
-                        className={`h-4 w-4 ${
-                          sendingOtp
-                            ? "animate-spin"
-                            : ""
-                        }`}
-                      />
-
-                      Resend OTP
-                    </button>
-
-                    <p className="mt-3 text-center text-xs text-gray-400">
-                      OTP is valid for 5
-                      minutes.
-                    </p>
                   </div>
-                )}
-              </div>
+
+                  <button
+                    type="button"
+                    onClick={handleVerifyOtp}
+                    disabled={verifyingOtp || otp.length !== 6}
+                    className="w-full flex items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3 text-xs font-bold text-white shadow-xs transition hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {verifyingOtp ? (
+                      <>
+                        <RefreshCw className="h-4 w-4 animate-spin" />
+                        <span>Verifying Code...</span>
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle2 className="h-4 w-4" />
+                        <span>Verify & Complete Delivery</span>
+                      </>
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleSendOtp}
+                    disabled={sendingOtp}
+                    className="w-full flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition"
+                  >
+                    <RefreshCw className={`h-3 w-3 ${sendingOtp ? "animate-spin" : ""}`} />
+                    <span>Resend OTP</span>
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
       </div>
-    </DeliveryDashboardLayout>
+    </div>
   );
 }
-
-export default DeliveryOrderDetails;

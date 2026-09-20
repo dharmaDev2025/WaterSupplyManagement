@@ -16,6 +16,7 @@ import DeliveryDashboard from "./pages/DeliveryDashboard";
 import DeliveryActiveOrders from "./pages/DeliveryActiveOrders";
 import DeliveryDeliveredOrders from "./pages/DeliveryDeliveredOrders";
 import DeliveryOrderDetails from "./pages/DeliveryOrderDetails";
+import DeliveryDashboardLayout from "./components/DeliveryDashboardLayout";
 
 import ProtectedRoute from "./components/Protected";
 
@@ -71,35 +72,35 @@ function App() {
             <ProtectedRoute role="delivery" />
           }
         >
-          <Route
-            path="/delivery/dashboard"
-            element={
-              <DeliveryDashboard />
-            }
-          />
+          <Route element={<DeliveryDashboardLayout />}>
+            <Route
+              path="/delivery/dashboard"
+              element={
+                <DeliveryDashboard />
+              }
+            />
 
-           <Route
-            path="/delivery/orders"
-            element={
-              <DeliveryActiveOrders title="Active Orders">
-                {null}
-              </DeliveryActiveOrders>
-            }
-          /> 
+            <Route
+              path="/delivery/orders"
+              element={
+                <DeliveryActiveOrders />
+              }
+            /> 
 
-           <Route
-            path="/delivery/orders/:id"
-            element={
-              <DeliveryOrderDetails />
-            }
-          /> 
+            <Route
+              path="/delivery/orders/:id"
+              element={
+                <DeliveryOrderDetails />
+              }
+            /> 
 
-           <Route
-            path="/delivery/delivered"
-            element={
-              <DeliveryDeliveredOrders />
-            }
-          />  
+            <Route
+              path="/delivery/delivered"
+              element={
+                <DeliveryDeliveredOrders />
+              }
+            />  
+          </Route>
         </Route>
       </Routes>
     </BrowserRouter>
