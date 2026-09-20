@@ -128,7 +128,7 @@ function Login() {
   const handleGoogleLogin = () => {
 
     window.location.href =
-      "http://localhost:5000/api/auth/google";
+      "https://watersupplymanagement-2yw9.onrender.com/api/auth/google";
   };
 
 
