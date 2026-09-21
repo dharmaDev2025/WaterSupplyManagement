@@ -1,850 +1,609 @@
-# 💧 AquaFlow - Water Supply Management System
+# 💧 AquaFlow — Water Supply Management System
 
-AquaFlow is a full-stack Water Supply Management System developed using the MERN stack.
+AquaFlow is a full-stack **Water Supply Management System** designed to simplify the process of ordering, managing, and delivering drinking water.
 
-The application allows customers to register, log in, browse water products, add products to their cart, place orders, make secure payments using Stripe, track their orders, and reorder previous purchases.
+The platform provides separate interfaces for **Customers, Administrators, and Delivery Personnel**, covering the complete workflow from customer registration and product ordering to online payment, order assignment, delivery tracking, and OTP-based delivery confirmation.
 
-The project currently contains the Customer Panel. The Admin Panel will be developed as the next major module for managing products, customers, orders, stock, and order statuses.
-
----
-
-## 🚀 Features
-
-### 👤 Customer Authentication
-
-- Customer Registration
-- Customer Login
-- Email and Password Authentication
-- Google OAuth 2.0 Authentication
-- JWT-based Authentication
-- Protected Routes
-- Customer Logout
-
-Authentication Flow:
-
-```text
-Customer
-   ↓
-Register / Login
-   ↓
-Email & Password OR Google OAuth
-   ↓
-Authentication Successful
-   ↓
-JWT Token
-   ↓
-Customer Dashboard
-```
+AquaFlow is built using the **MERN Stack** with TypeScript-based frontend applications, MongoDB for data storage, Stripe for online payments, Google OAuth 2.0 for social authentication, and map-based location support for delivery addresses.
 
 ---
 
-## 👤 Customer Profile
+## 🌐 Live Application
+
+### Customer Application
+
+Customers can register, sign in, browse available water products, manage their cart, place orders, make online payments, track orders, and manage their profiles.
+
+**Live Website:**
+https://water-supply-management-5egv.vercel.app
+
+### Admin & Delivery Application
+
+The management application provides dedicated role-based interfaces for administrators and delivery personnel.
+
+Administrators can manage products, customers, orders, delivery personnel, and order assignments.
+
+Delivery personnel can view assigned orders, manage active deliveries, update delivery progress, and complete deliveries using OTP verification.
+
+**Live Website:**
+https://water-supply-management-j4sd.vercel.app
+
+---
+
+# 📌 Project Overview
+
+Traditional water delivery businesses often manage customer orders, delivery addresses, payments, and delivery personnel manually.
+
+AquaFlow provides a centralized digital solution where the complete water delivery lifecycle can be managed through a web application.
+
+The basic workflow is:
+
+**Customer Registration → Product Selection → Cart → Checkout → Payment → Order Confirmation → Admin Processing → Delivery Assignment → Delivery Tracking → OTP Verification → Delivered**
+
+---
+
+# ✨ Key Features
+
+## 👤 Customer Module
+
+The customer application provides a simple and responsive interface for ordering drinking water.
 
 Customers can:
 
-- View profile
-- Update profile information
-- Store delivery address
-- Store map coordinates
-- Update delivery location
-- Change password
-- Use saved address during checkout
-
-Customer information includes:
-
-```text
-Name
-Phone
-Email
-Address
-Customer Type
-Latitude
-Longitude
-Account Status
-```
+* Create an account using email and password
+* Sign in using email/password
+* Sign in using Google OAuth 2.0
+* Recover forgotten passwords using OTP verification
+* View and update their profile
+* Store delivery address information
+* Store map-based location coordinates
+* Browse available water products
+* View individual product details
+* Add products to the cart
+* Buy products directly
+* Update cart quantities
+* Proceed through checkout
+* Make secure online payments
+* View previous and current orders
+* Track order status
+* Reorder previously purchased products
 
 ---
 
-## 📦 Product Module
+## 🔐 Authentication & Security
 
-Customers can browse available water products.
+AquaFlow implements role-based authentication for different types of users.
 
-The system supports:
+Authentication features include:
 
-### Water Jars
+* JWT-based authentication
+* Password hashing
+* Protected API routes
+* Role-based route protection
+* Google OAuth 2.0 authentication
+* Email OTP verification
+* Forgot-password OTP flow
+* Password reset
+* Rate limiting for sensitive authentication operations
+* Separate authentication flows for customers, administrators, and delivery personnel
 
-Customers can choose:
-
-```text
-New Jar
-Refill
-```
-
-### Water Bottles
-
-Customers can directly purchase bottles.
-
-Product information includes:
-
-```text
-Product Name
-Product Type
-Size
-Unit
-Stock
-New Jar Price
-Refill Price
-Bottle Price
-Active Status
-```
-
-Example:
-
-```text
-25L Water Jar
-New Jar: ₹...
-Refill: ₹...
-
-500ml Water Bottle
-Price: ₹...
-```
+Sensitive configuration values such as database credentials, JWT secrets, OAuth credentials, payment keys, and email API keys are managed through environment variables and are not stored in the source repository.
 
 ---
 
-## 🛒 Cart System
+# 🛒 Product & Cart Management
 
-Customers can:
+Customers can browse the water products currently available through the platform.
 
-- Add products to cart
-- Select purchase type
-- Increase quantity
-- Decrease quantity
-- Remove products
-- View cart total
-- Proceed to checkout
+Product information can include:
 
-Cart data is managed on the frontend using React Context.
+* Product name
+* Description
+* Price
+* Stock
+* Product image
+* Availability
 
----
+The cart system allows customers to:
 
-## ⚡ Buy Now
+* Add products
+* Remove products
+* Change quantities
+* Review selected products
+* Calculate order totals
+* Continue to checkout
 
-Customers can directly purchase a product without adding it to the cart.
-
-Flow:
-
-```text
-Products
-   ↓
-Buy Now
-   ↓
-Checkout
-   ↓
-Confirm Delivery Details
-   ↓
-Stripe Payment
-   ↓
-Order Created
-```
+Product inventory can be managed from the administrator dashboard.
 
 ---
 
-## 📍 Delivery Address & Location
+# 📦 Order Management
 
-During checkout, customers can confirm:
-
-- House / Flat Number
-- Street / Area
-- City
-- Exact delivery location
-- Latitude
-- Longitude
-
-The customer can select an exact delivery point using the map.
-
-Checkout address changes apply to the current order.
-
----
-
-## 💳 Stripe Payment Integration
-
-AquaFlow uses Stripe Checkout for secure online payments.
-
-Payment Flow:
-
-```text
-Checkout
-   ↓
-POST /api/orders/create-payment
-   ↓
-Backend validates products
-   ↓
-Backend checks stock
-   ↓
-Backend calculates total amount
-   ↓
-Stripe Checkout Session Created
-   ↓
-Customer completes payment
-   ↓
-Stripe redirects to Checkout
-   ↓
-POST /api/orders/verify-payment
-   ↓
-Backend verifies payment
-   ↓
-New Order Created
-   ↓
-Product Stock Reduced
-```
-
-The backend calculates the final amount instead of trusting prices sent from the frontend.
-
----
-
-## 📋 Order Management
-
-After successful payment, a new order is created.
+AquaFlow provides complete order lifecycle management.
 
 An order contains information such as:
 
-```text
-Order Number
-Customer
-Products
-Purchase Type
-Quantity
-Price
-Subtotal
-Total Amount
-Delivery Address
-Delivery Location
-Order Status
-Payment Status
-Stripe Session ID
-Stripe Payment Intent ID
-Order Date
-Delivery Date
-```
+* Unique order number
+* Customer
+* Ordered products
+* Quantity
+* Product price
+* Total amount
+* Delivery address
+* Delivery location
+* Payment information
+* Assigned delivery person
+* Current order status
+* Creation and update timestamps
 
-Possible order statuses include:
+The primary order workflow is:
 
-```text
-Pending
-Confirmed
-Assigned
-Packed
-Out for Delivery
-Delivered
-Cancelled
-```
+**Confirmed → Packed → Out for Delivery → Delivered**
+
+Customers can check their current order status through the application.
+
+Administrators can manage and process orders, while delivery personnel handle assigned deliveries.
 
 ---
 
-## 📦 My Orders
+# 💳 Stripe Payment Integration
 
-Customers can view all their previous orders.
+AquaFlow integrates **Stripe Checkout** for secure online payments.
 
-Each order displays:
+The payment workflow is:
 
-- Order Number
-- Order Date
-- Ordered Products
-- Quantity
-- Purchase Type
-- Total Amount
-- Payment Status
-- Order Status
+**Customer Checkout → Backend Creates Stripe Session → Stripe Checkout → Payment Verification → Order Creation → Stock Update**
 
-Two important actions are available:
+The backend verifies successful payments before creating the final order.
 
-```text
-Track Order
-Reorder
-```
+This prevents an order from being considered successfully paid only because the frontend redirects to a success page.
+
+Stripe test mode can be used during development and demonstration.
 
 ---
 
-## 🚚 Track Order
+# 🗺️ Map & Location Integration
 
-Customers can check the current status of an order.
+AquaFlow supports map-based delivery locations.
 
-Flow:
-
-```text
-My Orders
-   ↓
-Track Order
-   ↓
-GET /api/orders/:id/status
-   ↓
-Current Order Status
-```
-
-Example:
+Customer address information can contain normal address details as well as geographic coordinates:
 
 ```text
-Order Number: AQ12345
-
-Status:
-Confirmed
-   ↓
-Packed
-   ↓
-Out for Delivery
-   ↓
-Delivered
+Latitude
+Longitude
 ```
+
+These coordinates allow the system to store a more accurate delivery location instead of relying only on a manually typed address.
+
+Map/location support is used as part of the delivery-address workflow to help identify where an order needs to be delivered.
 
 ---
 
-## 🔄 Reorder
+# 👨‍💼 Admin Module
 
-Customers can reorder products from a previous order.
+The Admin Dashboard provides centralized management of the AquaFlow platform.
 
-For example, suppose the previous order contains:
+Administrators can manage:
 
-```text
-25L Water Jar × 1
-500ml Water Bottle × 1
-```
+* Dashboard information
+* Customers
+* Products
+* Product stock
+* Orders
+* Order statuses
+* Delivery personnel
+* Delivery assignments
 
-When the customer clicks:
+The administrator controls the operational side of the water supply business.
 
-```text
-Reorder
-```
+A typical admin workflow is:
 
-the system prepares the same products and quantities.
-
-Flow:
-
-```text
-Previous Order
-      ↓
-Click Reorder
-      ↓
-Get Previous Order Items
-      ↓
-Checkout
-      ↓
-Same Products Displayed
-      ↓
-Confirm Delivery Details
-      ↓
-Stripe Payment
-      ↓
-Payment Verification
-      ↓
-New Order Created
-      ↓
-Stock Reduced
-```
-
-The previous order is not modified.
-
-A completely new order is created after successful payment.
+**Admin Login → View Dashboard → Manage Products → Review Orders → Process Order → Assign Delivery Person → Monitor Delivery**
 
 ---
 
-# 🔄 Complete Customer Workflow
+# 🚚 Delivery Personnel Module
+
+AquaFlow includes a dedicated interface for delivery personnel.
+
+Delivery personnel can:
+
+* Log in securely
+* View their dashboard
+* View assigned active orders
+* Open individual order details
+* View customer and delivery information
+* Update delivery progress
+* View completed deliveries
+* Confirm final delivery using customer OTP
+
+The main delivery routes include:
 
 ```text
-Customer
-   ↓
-Register / Login
-   ↓
-Email & Password
-      OR
-Google OAuth 2.0
-   ↓
-Customer Dashboard
-   ↓
-Browse Products
-   ↓
-Choose Product
-   ↓
- ┌──────────────┬──────────────┐
- │              │              │
-Cart         Buy Now       Reorder
- │              │              │
- └──────────────┴──────────────┘
-                ↓
-             Checkout
-                ↓
-        Confirm Address
-                ↓
-      Select Map Location
-                ↓
-          Stripe Payment
-                ↓
-       Payment Verification
-                ↓
-          Order Created
-                ↓
-          Stock Reduced
-                ↓
-            My Orders
-                ↓
-          Track Order
+/delivery/dashboard
+/delivery/orders
+/delivery/orders/:id
+/delivery/delivered
 ```
+
+The delivery interface is responsive across desktop, tablet, and mobile devices.
 
 ---
 
-# 🛠️ Technology Stack
+# 🔢 OTP-Based Delivery Verification
+
+AquaFlow uses OTP verification to improve the reliability of final delivery confirmation.
+
+Instead of allowing an order to be marked as delivered without customer confirmation, the delivery process can require a customer-provided OTP.
+
+Workflow:
+
+**Delivery Person Reaches Customer → Customer Receives/Provides OTP → OTP Verified → Order Marked Delivered**
+
+This provides an additional confirmation step for completed deliveries.
+
+---
+
+# 📧 Email & OTP System
+
+Email functionality is used for account-related operations such as password recovery and OTP verification.
+
+The system supports:
+
+* Forgot-password OTP
+* OTP verification
+* Password reset
+* Transactional email delivery
+
+Production email configuration is maintained through environment variables rather than hardcoded credentials.
+
+---
+
+# 🔑 Google OAuth 2.0
+
+Customers can authenticate using their Google account.
+
+The Google OAuth flow is:
+
+**Customer → Google Sign-In → Google Authorization → Backend OAuth Callback → Customer Verification/Creation → JWT Generation → Customer Application**
+
+Google OAuth credentials and callback URLs are configured separately for development and production environments.
+
+---
+
+# 🧑‍💻 Technology Stack
 
 ## Frontend
 
-- React.js
-- TypeScript
-- React Router
-- Axios
-- Tailwind CSS
-- Context API
-- Local Storage
-- Session Storage
+* React.js
+* TypeScript
+* Vite
+* Tailwind CSS
+* React Router
+* Axios
+* Lucide React
 
 ## Backend
 
-- Node.js
-- Express.js
-- MongoDB
-- Mongoose
-- JWT
-- Google OAuth 2.0
-- Stripe
+* Node.js
+* Express.js
+* JavaScript ES Modules
+* REST API architecture
+* JWT authentication
+* bcrypt
+* Passport.js
+* Google OAuth 2.0
 
-## Authentication
+## Database
 
-- Email and Password Authentication
-- Google OAuth 2.0
-- JWT Authentication
-- Protected API Routes
+* MongoDB
+* MongoDB Atlas
+* Mongoose
 
 ## Payment
 
-- Stripe Checkout
+* Stripe Checkout
+* Stripe Payment Verification
 
-## Location
+## Email
 
-- Map-based delivery location
-- Latitude
-- Longitude
+* Transactional email / OTP integration
+* Production credentials managed through environment variables
+
+## Maps & Location
+
+* Map-based delivery location support
+* Latitude and longitude storage
+* Delivery address integration
+
+## Deployment
+
+* Vercel — frontend deployment
+* Render — backend/API deployment
+* MongoDB Atlas — cloud database
+
+---
+
+# 🏗️ System Architecture
+
+```text
+                    AquaFlow
+                       │
+         ┌─────────────┴─────────────┐
+         │                           │
+ Customer Application       Admin/Delivery Application
+         │                           │
+         └─────────────┬─────────────┘
+                       │
+                  REST API
+                       │
+               Node.js + Express
+                       │
+       ┌───────────────┼────────────────┐
+       │               │                │
+   MongoDB          Stripe         Google OAuth
+    Atlas           Payment              │
+       │               │                │
+       └───────────────┼────────────────┘
+                       │
+                 AquaFlow Backend
+```
+
+---
+
+# 🔄 Complete Application Workflow
+
+```text
+Customer
+   ↓
+Register / Login / Google Login
+   ↓
+Browse Water Products
+   ↓
+Add to Cart / Buy Now
+   ↓
+Select Delivery Address & Location
+   ↓
+Checkout
+   ↓
+Stripe Payment
+   ↓
+Payment Verification
+   ↓
+Order Created
+   ↓
+Admin Receives Order
+   ↓
+Order Processing
+   ↓
+Delivery Person Assigned
+   ↓
+Order Packed
+   ↓
+Out for Delivery
+   ↓
+Customer Delivery OTP Verification
+   ↓
+Delivered
+```
 
 ---
 
 # 📁 Project Structure
 
+A simplified project structure is:
+
 ```text
 WaterSupplyManagement/
 │
-├── frontend/
-│   │
-│   └── src/
-│       │
-│       ├── components/
-│       │
-│       ├── context/
-│       │
-│       ├── pages/
-│       │   ├── Login.tsx
-│       │   ├── Register.tsx
-│       │   ├── Dashboard.tsx
-│       │   ├── Products.tsx
-│       │   ├── Cart.tsx
-│       │   ├── Checkout.tsx
-│       │   ├── MyOrders.tsx
-│       │   └── Profile.tsx
-│       │
-│       ├── services/
-│       │   └── api.ts
-│       │
-│       └── App.tsx
-│
 ├── backend/
-│   │
 │   ├── config/
-│   │   └── stripe.js
-│   │
 │   ├── controllers/
-│   │   ├── auth.controller.js
-│   │   ├── customer.controller.js
-│   │   ├── product.controller.js
-│   │   └── order.controller.js
-│   │
 │   ├── middleware/
-│   │   └── auth.middleware.js
-│   │
 │   ├── models/
-│   │   ├── customer.model.js
-│   │   ├── product.model.js
-│   │   └── order.model.js
-│   │
 │   ├── routes/
-│   │   ├── auth.routes.js
-│   │   ├── customer.routes.js
-│   │   ├── product.routes.js
-│   │   └── order.routes.js
-│   │
-│   └── server.js
+│   ├── utils/
+│   ├── server.js
+│   └── package.json
 │
-├── README.md
-└── .gitignore
-```
-
-The exact file names may vary depending on the project structure.
-
----
-
-# 🔗 Important Order APIs
-
-```text
-GET    /api/orders/my-orders
-
-GET    /api/orders/:id
-
-GET    /api/orders/:id/status
-
-POST   /api/orders/:id/reorder
-
-POST   /api/orders/create-payment
-
-POST   /api/orders/verify-payment
+├── frontend/
+│   ├── src/
+│   │   ├── components/
+│   │   ├── context/
+│   │   ├── pages/
+│   │   └── services/
+│   └── package.json
+│
+├── admin/
+│   ├── src/
+│   │   ├── components/
+│   │   ├── pages/
+│   │   └── services/
+│   └── package.json
+│
+└── README.md
 ```
 
 ---
 
-# 🔐 Environment Variables
+# ⚙️ Environment Variables
 
-Create a `.env` file inside the backend.
+The backend requires environment variables for external services and security configuration.
 
 Example:
 
 ```env
 PORT=5000
 
-MONGO_URI=YOUR_MONGODB_CONNECTION_STRING
+MONGO_URI=your_mongodb_connection_string
 
-JWT_SECRET=YOUR_STRONG_JWT_SECRET
+JWT_SECRET=your_jwt_secret
 
-GOOGLE_CLIENT_ID=YOUR_GOOGLE_CLIENT_ID
+CLIENT_URL=your_customer_frontend_url
+ADMIN_URL=your_admin_frontend_url
 
-GOOGLE_CLIENT_SECRET=YOUR_GOOGLE_CLIENT_SECRET
+GOOGLE_CLIENT_ID=your_google_client_id
+GOOGLE_CLIENT_SECRET=your_google_client_secret
+GOOGLE_CALLBACK_URL=your_google_callback_url
 
-GOOGLE_CALLBACK_URL=YOUR_GOOGLE_CALLBACK_URL
+STRIPE_SECRET_KEY=your_stripe_secret_key
 
-STRIPE_SECRET_KEY=sk_test_YOUR_STRIPE_SECRET_KEY
-
-CLIENT_URL=http://localhost:5173
+EMAIL_USER=your_verified_sender_email
+EMAIL_PASS=your_email_password_if_smtp_is_used
+BREVO_API_KEY=your_email_api_key_if_brevo_is_used
 ```
 
-Additional email or authentication environment variables can be added depending on the project configuration.
-
-Never upload your real `.env` file to GitHub.
+Never commit real `.env` credentials to GitHub.
 
 ---
 
-# ⚙️ Installation
+# 🚀 Running the Project Locally
 
-Clone the repository:
-
-```bash
-git clone YOUR_REPOSITORY_URL
-```
-
-Enter the project:
+## 1. Clone the Repository
 
 ```bash
+git clone <repository-url>
 cd WaterSupplyManagement
 ```
 
----
-
-## Backend Setup
+## 2. Install Backend Dependencies
 
 ```bash
 cd backend
-
 npm install
-
-npm run dev
 ```
 
----
+Configure the backend `.env` file and start the server:
 
-## Frontend Setup
+```bash
+npm start
+```
 
-Open another terminal:
+## 3. Start Customer Frontend
 
 ```bash
 cd frontend
-
 npm install
+npm run dev
+```
 
+## 4. Start Admin/Delivery Frontend
+
+```bash
+cd admin
+npm install
 npm run dev
 ```
 
 ---
 
-# 💳 Stripe Test Payment
+# 🌍 Deployment Architecture
 
-During development, Stripe should be used in Test Mode.
-
-Example Stripe test card:
+AquaFlow uses separate production services:
 
 ```text
-Card Number:
-4242 4242 4242 4242
+Customer Frontend
+        │
+        │ Vercel
+        ↓
+https://water-supply-management-5egv.vercel.app
+        │
+        ↓
+AquaFlow REST API
+        │
+        │ Render
+        ↓
+Node.js + Express Backend
+        │
+        ├── MongoDB Atlas
+        ├── Stripe
+        ├── Google OAuth
+        └── Email Service
 
-Expiry:
-Any future date
 
-CVC:
-Any valid 3-digit number
-```
-
-No real money is charged while using Stripe test mode.
-
----
-
-# 🔒 Security
-
-The application follows important security practices:
-
-- Passwords should be hashed before storing them.
-- JWT is used for protected customer routes.
-- Google OAuth credentials remain on the backend.
-- Stripe secret keys remain on the backend.
-- Payment amounts are calculated on the server.
-- Payment is verified before creating the final order.
-- Customers can access only their own orders.
-- Environment variables are stored in `.env`.
-- `.env` should never be committed to GitHub.
-
----
-
-# 🛡️ Admin Panel - Next Development Phase
-
-The next major module of AquaFlow will be the Admin Panel.
-
-The Admin Panel will be designed separately from the Customer Panel.
-
-## Planned Admin Features
-
-### Admin Authentication
-
-```text
-Admin Login
-   ↓
-Verify Admin
-   ↓
-Admin Dashboard
-```
-
-Admin routes will be protected using admin authorization middleware.
-
----
-
-## 📊 Admin Dashboard
-
-The dashboard can display information such as:
-
-```text
-Total Customers
-Total Orders
-Total Products
-Total Sales
-Pending Orders
-Confirmed Orders
-Delivered Orders
-Low Stock Products
+Admin / Delivery Frontend
+        │
+        │ Vercel
+        ↓
+https://water-supply-management-j4sd.vercel.app
+        │
+        └──────────────→ AquaFlow REST API
 ```
 
 ---
 
-## 📦 Product Management
+# 📱 Responsive Design
 
-Admin will be able to:
+AquaFlow is designed to work across:
 
-- View all products
-- Add products
-- Update products
-- Update product prices
-- Update stock
-- Activate products
-- Deactivate products
+* Desktop computers
+* Laptops
+* Tablets
+* Mobile devices
 
-Flow:
-
-```text
-Admin Dashboard
-      ↓
-Products
-      ↓
- ┌───────────────┐
- │ Add Product   │
- │ Edit Product  │
- │ Update Stock  │
- │ Update Price  │
- │ Change Status │
- └───────────────┘
-```
-
----
-
-## 📋 Order Management
-
-Admin will be able to:
-
-- View all orders
-- View individual order details
-- View customer information
-- View delivery address
-- View delivery location
-- Update order status
-
-Example:
-
-```text
-Confirmed
-   ↓
-Packed
-   ↓
-Out for Delivery
-   ↓
-Delivered
-```
-
-The customer will see these changes using the Track Order feature.
-
----
-
-## 👥 Customer Management
-
-Admin will be able to:
-
-- View registered customers
-- View customer details
-- View customer order history
-- View customer account status
-
----
-
-## 📦 Stock Management
-
-Admin will manage available product stock.
-
-Example:
-
-```text
-25L Jar
-
-Current Stock: 50
-
-Customer Orders: 2
-
-Remaining Stock: 48
-```
-
-The system already reduces stock after successful customer orders.
-
-The Admin Panel will provide the interface for managing and updating that stock.
-
----
-
-# 🔮 Future Enhancements
-
-After completing the Admin Panel, possible improvements include:
-
-- Admin analytics
-- Sales reports
-- Low-stock alerts
-- Order search
-- Order filters
-- Customer search
-- Notifications
-- Professional PDF invoice/bill generation
-- Better delivery tracking
-- Dashboard charts
-- Revenue reports
-
----
-
-# 🗺️ Development Roadmap
-
-```text
-Customer Registration/Login       ✅
-Google OAuth 2.0                  ✅
-JWT Authentication                ✅
-Customer Profile                  ✅
-Product Listing                   ✅
-Cart                              ✅
-Buy Now                           ✅
-Delivery Location                 ✅
-Checkout                          ✅
-Stripe Payment                    ✅
-Order Creation                    ✅
-Stock Reduction                   ✅
-My Orders                         ✅
-Track Order                       ✅
-Reorder                           🔄
-Admin Panel                       ⏳ Next
-```
+The customer, admin, and delivery interfaces use responsive layouts so the application remains usable across different screen sizes.
 
 ---
 
 # 🎯 Project Objective
 
-The objective of AquaFlow is to digitize the ordering and management process of a water supply business.
+The main objective of AquaFlow is to digitize the workflow of a local water supply business.
 
-The complete planned system is:
+Instead of managing orders, payments, customers, products, and deliveries manually, AquaFlow combines them into one centralized platform.
 
-```text
-CUSTOMER
-   ↓
-Register / Login / Google Login
-   ↓
-Browse Products
-   ↓
-Cart / Buy Now / Reorder
-   ↓
-Checkout
-   ↓
-Delivery Location
-   ↓
-Stripe Payment
-   ↓
-Order Created
-   ↓
-             ADMIN PANEL
-                  ↓
-             View Order
-                  ↓
-           Process Order
-                  ↓
-        Update Order Status
-                  ↓
-CUSTOMER TRACKS ORDER
-                  ↓
-              Delivered
-```
+The project demonstrates practical implementation of:
+
+**Full-stack web development, REST APIs, authentication, authorization, cloud database integration, online payments, Google OAuth, map/location handling, transactional email, role-based dashboards, order tracking, OTP verification, responsive UI design, and cloud deployment.**
 
 ---
 
-## 📌 Current Project Status
+# 🔮 Future Enhancements
 
-The Customer Panel is the current completed development focus.
+Possible future improvements include:
 
-The next development phase is:
-
-**Admin Panel Development**
-
-The Admin Panel will connect with the existing Product, Customer, Stock, and Order systems rather than creating a separate ordering system.
+* Real-time delivery tracking
+* WebSocket-based live order updates
+* Push notifications
+* Advanced analytics dashboard
+* Sales reports
+* Invoice/PDF generation
+* Multiple delivery locations
+* Delivery route optimization
+* Customer ratings and reviews
+* Automated stock alerts
+* Subscription-based recurring water delivery
+* Progressive Web App support
 
 ---
 
-# 💧 AquaFlow
+# 🔒 Security
 
-**Smart Water Supply Management System**
+For security:
 
-Built using the MERN Stack with TypeScript, Google OAuth 2.0, JWT Authentication, Stripe Payment Integration, and map-based delivery location.
+* Passwords are hashed before storage.
+* JWT is used for authenticated requests.
+* Protected routes require valid authentication.
+* Role-based authorization separates customer, admin, and delivery functionality.
+* Sensitive credentials are stored in environment variables.
+* Payment confirmation is verified by the backend.
+* OTP verification is used for sensitive operations and delivery confirmation.
+* Authentication endpoints can be protected using rate limiting.
+* `.env` files and production secrets should never be committed to Git.
+
+---
+
+# 📄 Project Status
+
+**AquaFlow is deployed and available as a full-stack web application.**
+
+Customer Application:
+https://water-supply-management-5egv.vercel.app
+
+Admin & Delivery Application:
+https://water-supply-management-j4sd.vercel.app
+
+---
+
+## 💧 AquaFlow
+
+**Smart Water Ordering. Secure Payments. Efficient Delivery Management.**
